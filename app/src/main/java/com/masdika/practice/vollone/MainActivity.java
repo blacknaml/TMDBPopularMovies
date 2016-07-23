@@ -1,8 +1,12 @@
 package com.masdika.practice.vollone;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -25,17 +29,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     final String BASE_MOVIE_URL = "https://api.themoviedb.org/3/movie/popular?";
     final String API_KEY = "796b78a940cdb3ba4ac81d7d423b34a6";
 
-    List<MovieItem> mMovies = new ArrayList<>();
-    MoviesAdapter mAdapter;
+    MoviesCursorAdapter mAdapter;
     private GridView gvMovies;
 
     RequestQueue queue;
+
+    private final static int MOVIES_LOADER = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +52,9 @@ public class MainActivity extends AppCompatActivity {
 
         gvMovies = (GridView) findViewById(R.id.gvMovies);
         gvMovies.setEmptyView(emptyView);
-        mAdapter = new MoviesAdapter(this, mMovies);
+
+        mAdapter = new MoviesCursorAdapter(this, null, 0);
+
         gvMovies.setAdapter(mAdapter);
         gvMovies.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -70,6 +77,8 @@ public class MainActivity extends AppCompatActivity {
                     public void onResponse(String response) {
                         Log.d(TAG, "Response : " + response);
 
+                        parseJson(response);
+
                         /*List<MovieItem> result = parseJson(response);
 
                         if(result != null){
@@ -89,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
         queue.add(stringRequest);
     }
 
-    private List<MovieItem> parseJson(String response) {
+    private void parseJson(String response) {
         final String TMDB_RESULT = "results";
         final String TMDB_URL_IMAGE = "poster_path";
         final String TMDB_VOTE = "vote_average";
@@ -134,12 +143,44 @@ public class MainActivity extends AppCompatActivity {
                 getContentResolver().bulkInsert(MoviesContract.MoviesTable.CONTENT_URI, cvArray);
             }
 
-            getContentResolver().query(MoviesContract.MoviesTable.CONTENT_URI, null, null, null, null);
+            getContentResolver().query(
+                    MoviesContract.MoviesTable.CONTENT_URI,
+                    MoviesContract.MoviesTable.MOVIES_PROJECTIONS,
+                    null,
+                    null,
+                    null);
 
         } catch (JSONException e){
             e.printStackTrace();
         }
 
-        return resultMovies;
+        /*return resultMovies;*/
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+
+        return new CursorLoader(this,
+                MoviesContract.MoviesTable.CONTENT_URI,
+                MoviesContract.MoviesTable.MOVIES_PROJECTIONS,
+                null,
+                null,
+                null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mAdapter.swapCursor(data);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        getSupportLoaderManager().initLoader(MOVIES_LOADER, null, this);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mAdapter.swapCursor(null);
     }
 }

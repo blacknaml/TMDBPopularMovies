@@ -9,6 +9,7 @@ import android.widget.CursorAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.masdika.practice.vollone.data.MoviesContract;
 import com.squareup.picasso.Picasso;
 
 /**
@@ -37,15 +38,19 @@ public class MoviesCursorAdapter extends CursorAdapter {
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
         ViewHolder viewHolder = (ViewHolder) view.getTag();
-        Picasso.with(context).load(IMAGE_URL)
-
+        Picasso.with(context)
+                .load(IMAGE_URL + cursor.getString(MoviesContract.MoviesTable.COL_POSTER))
+                .into(viewHolder.ivMovie);;
+        viewHolder.tvVote.setText(
+                String.valueOf(cursor.getDouble(MoviesContract.MoviesTable.COL_VOTE))
+        );
     }
 
     public class ViewHolder{
         private final ImageView ivMovie;
         private final TextView tvVote;
 
-        public viewHolder(View view){
+        public ViewHolder(View view){
             ivMovie = (ImageView) view.findViewById(R.id.ivMovie);
             tvVote = (TextView) view.findViewById(R.id.tvVote);
         }
